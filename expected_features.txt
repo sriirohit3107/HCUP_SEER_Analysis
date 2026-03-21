@@ -1,0 +1,38 @@
+Year_of_diagnosis
+Histology
+Age_at_diagnosis_01-04 years
+Age_at_diagnosis_05-09 years
+Age_at_diagnosis_10-14 years
+Age_at_diagnosis_15-19 years
+Age_at_diagnosis_20-24 years
+Age_at_diagnosis_25-29 years
+Age_at_diagnosis_30-34 years
+Age_at_diagnosis_35-39 years
+Age_at_diagnosis_40-44 years
+Age_at_diagnosis_45-49 years
+Age_at_diagnosis_50-54 years
+Age_at_diagnosis_55-59 years
+Age_at_diagnosis_60-64 years
+Age_at_diagnosis_65-69 years
+Age_at_diagnosis_70-74 years
+Age_at_diagnosis_75-79 years
+Age_at_diagnosis_80-84 years
+Age_at_diagnosis_85-89 years
+Age_at_diagnosis_90+ years
+Sex_Male
+Race_Asian or Pacific Islander
+Race_Black
+Race_Unknown
+Race_White
+Primary_site_C18.2-Ascending colon
+Primary_site_C18.3-Hepatic flexure of colon
+Primary_site_C18.4-Transverse colon
+Primary_site_C18.5-Splenic flexure of colon
+Primary_site_C18.6-Descending colon
+Primary_site_C18.7-Sigmoid colon
+Primary_site_C18.8-Overlapping lesion of colon
+"Primary_site_C18.9-Colon, NOS"
+Grade_Moderately differentiated; Grade II
+Grade_Poorly differentiated; Grade III
+Grade_Unknown
+Grade_Well differentiated; Grade I

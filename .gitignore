@@ -1,0 +1,51 @@
+# ================================
+# Large Data Files (too big for GitHub + contain patient data)
+# ================================
+SEER_MLseer_colon_analysis.csv
+seer_colon_encoded.csv
+export.txt
+export.dic
+
+# ================================
+# Trained Model Files (regenerate by running seer_model.py)
+# ================================
+xgb_model.pkl
+scaler.pkl
+
+# ================================
+# Prediction Output (generated files, not source)
+# ================================
+predicted_results.csv
+
+# ================================
+# Python
+# ================================
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+env/
+venv/
+.env
+*.egg-info/
+dist/
+build/
+
+# ================================
+# Jupyter Notebooks checkpoints
+# ================================
+.ipynb_checkpoints/
+
+# ================================
+# OS Files
+# ================================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ================================
+# IDE
+# ================================
+.vscode/
+.idea/
+*.swp
