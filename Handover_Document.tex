@@ -1,0 +1,507 @@
+\documentclass[11pt,letterpaper]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{tcolorbox}
+\usepackage{fancyhdr}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{hyperref}
+\usepackage{multicol}
+
+\definecolor{projblue}{RGB}{0,70,127}
+\definecolor{projgreen}{RGB}{0,100,50}
+\definecolor{warnred}{RGB}{180,60,0}
+\definecolor{lightgray}{RGB}{248,248,248}
+\definecolor{donegray}{RGB}{200,200,200}
+
+\titleformat{\section}{\large\bfseries\color{projblue}}{\thesection.}{0.5em}{}[\vspace{-4pt}\rule{\linewidth}{0.5pt}]
+\titleformat{\subsection}{\normalsize\bfseries\color{projgreen}}{\thesubsection}{0.5em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries}{\thesubsubsection}{0.5em}{}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\textcolor{projblue}{\textbf{Research Handover Document — Binghamton University}}}
+\rhead{\textcolor{gray}{April 2026}}
+\cfoot{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\setlist[itemize]{itemsep=3pt, topsep=4pt}
+\setlist[enumerate]{itemsep=3pt, topsep=4pt}
+
+\begin{document}
+
+% ── Cover ────────────────────────────────────────────────────────────────────
+\begin{center}
+{\LARGE\bfseries\color{projblue} Research Project Handover Document}\\[6pt]
+{\large Binghamton University · Department of Systems Science \& Industrial Engineering}\\[4pt]
+{\normalsize Prepared by: Sriirohit Prakash \quad|\quad \texttt{sprakash1@binghamton.edu}}\\[4pt]
+{\normalsize April 2026}\\[10pt]
+\rule{\linewidth}{1pt}
+\end{center}
+
+\vspace{0.3cm}
+\begin{tcolorbox}[colback=projblue!6, colframe=projblue,
+  title=\textbf{Overview — Two Active Research Projects}]
+This document provides a complete handover for two parallel research projects under
+Professor Ertem's supervision. Each project has its own dataset, codebase, and research
+objective. Both are in active development and require continued work.
+
+\medskip
+\begin{tabular}{llll}
+\toprule
+\textbf{Project} & \textbf{Domain} & \textbf{Data} & \textbf{Status} \\
+\midrule
+Project 1 & Colon Cancer Metastasis Prediction & SEER 21 Registry & Model built; validation pending \\
+Project 2 & ADRD \& Fall Hospitalizations       & HCUP NIS 2016–2022 & Cohorts built; Table 1 in progress \\
+\bottomrule
+\end{tabular}
+\end{tcolorbox}
+
+\newpage
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Project 1 — Colon Cancer Metastasis Prediction (SEER ML)}
+% ══════════════════════════════════════════════════════════════════════════════
+
+\subsection{Vision and Research Question}
+
+\begin{tcolorbox}[colback=lightgray, colframe=projblue!50]
+\textbf{Core question:} Can we predict the probability of distant metastasis in colon
+cancer \emph{before} comprehensive imaging, using only information available at the
+moment of initial diagnosis?
+
+\medskip
+\textbf{Clinical goal:} Provide an early risk stratification tool that helps oncologists
+estimate cure rate and longevity, enabling faster treatment planning without waiting for
+full staging workup. This is especially valuable in resource-limited settings.
+\end{tcolorbox}
+
+\subsection{Dataset Required}
+
+\begin{tcolorbox}[colback=warnred!8, colframe=warnred,
+  title=\textbf{Dataset: SEER 21 Registry (National Cancer Institute)}]
+\begin{itemize}
+  \item \textbf{Source:} Surveillance, Epidemiology, and End Results (SEER) Program —
+        21 registry version, available at \url{https://seer.cancer.gov}
+  \item \textbf{Access:} Requires SEER Research Data Agreement. Apply at SEER website;
+        approval typically takes 2–4 weeks.
+  \item \textbf{Files needed:}
+        \texttt{export.txt} (main data) + \texttt{export.dic} (data dictionary)
+        — exported from SEER*Stat software with colon cancer filters
+  \item \textbf{Filter applied in SEER*Stat before export:}
+        Site = Colon (C18.1–C18.9); Years = 2000–2022; Histology = malignant
+  \item \textbf{Size:} $\sim$809,625 patients after our exclusions
+  \item \textbf{Key variables used:} Age at diagnosis, Sex, Race, Primary site (ICD-O-3),
+        Histology (ICD-O-3 morphology code), Tumor grade, Year of diagnosis,
+        SEER Summary Stage (metastasis label — our target variable)
+  \item \textbf{NOT available in SEER (limits model):} T/N staging details, CEA levels,
+        tumor size, treatment type — these will come from Guthrie dataset (Phase 2)
+\end{itemize}
+\end{tcolorbox}
+
+\subsection{What Has Been Done}
+
+\subsubsection{Data Preprocessing (\texttt{seer\_model.py})}
+\begin{itemize}
+  \item Loaded raw SEER fixed-width export file (\texttt{export.txt})
+  \item Applied inclusions: Grades I, II, III only; colon sites C18.1–C18.9;
+        years 2000–2022
+  \item Applied exclusions:
+    \begin{itemize}
+      \item Grade IV (undifferentiated/anaplastic, $\sim$9,999 pts) —
+            biologically distinct, distorts predictions
+      \item Immunophenotype labels (B-cell, T-cell, NK cell, Null cell,
+            $\sim$3,670 pts) — immune lineage labels, not valid cancer grades;
+            appear in SEER due to multi-cancer encoding
+    \end{itemize}
+  \item Created binary label: \texttt{Metastasis} = 1 if SEER Summary Stage = ``Distant'',
+        else 0
+  \item One-hot encoded categorical variables with \texttt{drop\_first=True}
+  \item 70/30 stratified train/test split
+\end{itemize}
+
+\subsubsection{Model Training (\texttt{seer\_model.py})}
+\begin{itemize}
+  \item Baseline: Logistic Regression with StandardScaler
+  \item Final model: XGBoost with \texttt{CalibratedClassifierCV}
+        (Platt sigmoid calibration) — calibration converts raw XGBoost scores
+        into reliable probabilities
+  \item \textbf{Important:} StandardScaler is only applied to Logistic Regression.
+        XGBoost is trained on raw (unscaled) data. Do NOT apply scaler to XGBoost
+        inference — this was a past bug that caused all predictions to return $\sim$1.2\%.
+  \item Saved artifacts: \texttt{xgb\_model.pkl}, \texttt{scaler.pkl},
+        \texttt{X\_train.columns} (column order must be preserved for inference)
+\end{itemize}
+
+\subsubsection{Model Performance}
+\begin{center}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Metric} & \multicolumn{2}{c}{\textbf{Logistic Regression}} &
+\multicolumn{2}{c}{\textbf{XGBoost (final)}} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+ & Non-Met & Metastatic & Non-Met & Metastatic \\
+\midrule
+AUC-ROC   & \multicolumn{2}{c}{0.673} & \multicolumn{2}{c}{\textbf{0.785}} \\
+Precision & 0.83 & 0.33 & 0.85 & 0.61 \\
+Recall    & 1.00 & 0.00 & \textbf{0.98} & 0.19 \\
+F1-Score  & 0.91 & 0.00 & 0.91 & 0.29 \\
+Accuracy  & \multicolumn{2}{c}{0.83} & \multicolumn{2}{c}{\textbf{0.84}} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\medskip
+\noindent\textbf{Primary focus — Non-Metastatic recall (98\%):} The model correctly
+identifies 98\% of non-metastatic patients. Metastatic recall is low (19\%) because
+the strongest metastasis predictors (T/N stage, CEA, tumor size) are not in SEER.
+
+\subsubsection{Inference Pipeline (\texttt{seer\_predict.py})}
+\begin{itemize}
+  \item Load new patient data as a DataFrame
+  \item One-hot encode with \texttt{drop\_first=False} (different from training!)
+  \item Align columns: \texttt{reindex(columns=X\_train.columns, fill\_value=0)}
+        — this is critical; misalignment was the root cause of the 1.2\% bug
+  \item Apply XGBoost model directly (no scaler)
+  \item Output: \texttt{Metastasis\_Probability} and \texttt{NonMetastasis\_Probability}
+\end{itemize}
+
+\subsubsection{Streamlit Web App (\texttt{app.py})}
+\begin{itemize}
+  \item Interactive UI for single-patient prediction
+  \item Inputs: Age group, Sex, Race, Primary site, Histology (ICD-O-3), Grade, Year
+  \item Outputs: Metastasis probability (\%), Non-metastasis probability (\%),
+        Risk level (Low/Moderate/High)
+  \item Grade dropdown: Grade I, II, III only (Grade IV removed)
+  \item Run with: \texttt{streamlit run app.py}
+\end{itemize}
+
+\subsubsection{Report}
+\begin{itemize}
+  \item \texttt{SEER\_ML\_Report\_v2.tex} — 3-page LaTeX report with objective,
+        inclusions/exclusions, model accuracy table, 10 test cases, and screenshots
+  \item Needs: \texttt{out1.png}–\texttt{out10.png} (Streamlit screenshots) uploaded
+        to Overleaf to render Section 5 (screenshots)
+\end{itemize}
+
+\subsection{What Still Needs to Be Done}
+
+\begin{tcolorbox}[colback=warnred!8, colframe=warnred,
+  title=\textbf{Phase 2 — Guthrie Dataset External Validation (PENDING)}]
+\begin{enumerate}
+  \item \textbf{Obtain Guthrie dataset} — clinical records from Guthrie Health System.
+        Contains variables absent from SEER: T/N stage, CEA levels, tumor size,
+        treatment type. This is the external validation dataset.
+  \item \textbf{External validation} — run \texttt{seer\_predict.py} on Guthrie patients
+        and compare predicted probabilities to actual outcomes.
+  \item \textbf{Expected improvement} — metastatic recall projected to improve from
+        19\% to $>$50\% once T/N staging and CEA are added as features.
+  \item \textbf{Retrain if needed} — if Guthrie data reveals new variables, retrain
+        XGBoost with expanded feature set.
+\end{enumerate}
+\end{tcolorbox}
+
+\subsection{Key Files — Project 1}
+
+\begin{center}
+\begin{tabular}{lp{9cm}}
+\toprule
+\textbf{File} & \textbf{Purpose} \\
+\midrule
+\texttt{seer\_model.py}       & Data loading, preprocessing, model training, saves .pkl files \\
+\texttt{seer\_predict.py}     & Batch inference on new patients \\
+\texttt{app.py}               & Streamlit web UI for single-patient prediction \\
+\texttt{xgb\_model.pkl}       & Trained XGBoost model (gitignored — do not commit) \\
+\texttt{scaler.pkl}           & StandardScaler for Logistic Regression only (gitignored) \\
+\texttt{SEER\_ML\_Report\_v2.tex} & Final report LaTeX source \\
+\texttt{.gitignore}           & Excludes large data files and model artifacts from GitHub \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{How to Run — Project 1}
+
+\begin{enumerate}
+  \item Place \texttt{export.txt} and \texttt{export.dic} in the project folder
+  \item \texttt{python seer\_model.py} — trains model, saves \texttt{xgb\_model.pkl}
+  \item \texttt{streamlit run app.py} — launches web app at \texttt{localhost:8501}
+  \item \texttt{python seer\_predict.py} — batch predictions on new patients
+\end{enumerate}
+
+\newpage
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Project 2 — ADRD \& Fall Hospitalizations (HCUP NIS)}
+% ══════════════════════════════════════════════════════════════════════════════
+
+\subsection{Vision and Research Question}
+
+\begin{tcolorbox}[colback=lightgray, colframe=projblue!50]
+\textbf{Core question:} Among patients with Alzheimer's Disease and Related Dementias
+(ADRD) hospitalized in the US, what are the demographic, clinical, and spatial differences
+between those admitted \emph{for} a fall, those with a \emph{prior fall history}, and those
+with \emph{no fall}?
+
+\medskip
+\textbf{Clinical goal:} Understand the burden of fall-related hospitalizations in the
+ADRD population at a national level (2016–2022) and identify risk factors that distinguish
+the three cohorts. Findings will inform fall prevention strategies for dementia patients.
+\end{tcolorbox}
+
+\subsection{Dataset Required}
+
+\begin{tcolorbox}[colback=warnred!8, colframe=warnred,
+  title=\textbf{Dataset: HCUP National Inpatient Sample (NIS), 2016–2022}]
+\begin{itemize}
+  \item \textbf{Source:} Healthcare Cost and Utilization Project (HCUP), AHRQ.
+        Available at \url{https://www.hcup-us.ahrq.gov/nisoverview.jsp}
+  \item \textbf{Access:} Requires HCUP Data Use Agreement (DUA) — separate agreement
+        per year. Annual fee applies. Apply at \url{https://www.hcup-us.ahrq.gov/tech_assist/dua.jsp}
+  \item \textbf{Files needed per year:}
+    \begin{itemize}
+      \item \textbf{Core file} (\texttt{NIS\_YYYY\_Core.ASC}) — patient-level discharge
+            records; fixed-width ASCII format; $\sim$7M discharges/year nationally
+      \item \textbf{Hospital file} (\texttt{NIS\_YYYY\_Hospital.ASC}) — hospital
+            characteristics (region, teaching status, bed size); keyed by \texttt{HOSPID}
+            — \textbf{NOT YET MERGED}
+    \end{itemize}
+  \item \textbf{Column positions:} Vary by year. Defined per-year in
+        \texttt{get\_col\_dict()} in \texttt{hcup\_adrd\_falls\_cohorts.py}.
+        Always verify against official SAS load files before changing.
+  \item \textbf{Critical format change:} NIS redesigned the record layout in 2019.
+        Years 2016–2018 use different column positions than 2019–2022.
+        Our code handles this correctly.
+  \item \textbf{Important limitation:} NIS is \textbf{discharge-level}, not
+        patient-level. \texttt{KEY\_NIS} identifies a hospitalization, not a person.
+        The same patient can appear multiple times across years with no linkage.
+        All cohort counts represent hospitalizations, not unique patients.
+\end{itemize}
+\end{tcolorbox}
+
+\subsection{Cohort Definitions}
+
+Three mutually exclusive cohorts, applied after exclusions:
+
+\begin{center}
+\renewcommand{\arraystretch}{1.4}
+\begin{tabularx}{\textwidth}{lXr}
+\toprule
+\textbf{Cohort} & \textbf{Rule} & \textbf{N (2016–2022)} \\
+\midrule
+\textbf{ADRD\_FALL\_PRIMARY}
+  & ADRD in any DX \textbf{AND} \texttt{I10\_DX1} (principal diagnosis) =
+    fall-related injury (S00–S99, T00–T34) or fall mechanism (W00–W19)
+  & 214,140 \\
+\textbf{ADRD\_PRIOR\_FALL}
+  & ADRD in any DX \textbf{AND} Z91.81 (history of falling) in any DX
+    \textbf{AND} not in Cohort 1
+  & 127,242 \\
+\textbf{ADRD\_NO\_FALL}
+  & ADRD in any DX; NO fall codes (W00–W19), NO Z91.81 anywhere
+  & 2,009,773 \\
+\midrule
+\textit{UNCLASSIFIED}
+  & Fall W-code in secondary DX only; DX1 is not an injury code
+    (e.g., admitted for pneumonia with incidental fall code) —
+    \textbf{awaiting professor decision on classification}
+  & 144,643 \\
+\midrule
+\textbf{Total} & & \textbf{2,495,798} \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{ADRD ICD-10 Codes Used}
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+\textbf{Code} & \textbf{Condition} \\
+\midrule
+G30.x  & Alzheimer's disease \\
+G31.0x & Frontotemporal dementia \\
+G31.83 & Dementia with Lewy bodies \\
+F01.x  & Vascular dementia \\
+F02.x  & Dementia in other diseases \\
+F03.x  & Unspecified / general dementia \\
+G23.1  & Progressive supranuclear palsy \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Exclusion Criteria}
+\begin{itemize}
+  \item Age $<$ 50 at admission (\texttt{AGE} variable)
+  \item Any malignancy code C00–C96 in any DX field (all 40 diagnosis positions)
+\end{itemize}
+
+\subsection{What Has Been Done}
+
+\subsubsection{Cohort Builder (\texttt{hcup\_adrd\_falls\_cohorts.py})}
+\begin{itemize}
+  \item Reads raw NIS Core ASC files year by year in 100,000-row chunks
+  \item Applies ADRD filter, age exclusion, cancer exclusion
+  \item Assigns each discharge to one of the three cohorts using vectorized regex
+  \item Computes 10 Elixhauser comorbidity flags per patient using ICD-10 regex
+  \item Saves results to \texttt{HCUP\_ADRD\_Falls\_Cohorts.csv} (append mode —
+        safe to run one year at a time without losing prior results)
+  \item \textbf{CSV is already built} — 2,495,798 rows, all 7 years (2016–2022)
+\end{itemize}
+
+\subsubsection{Table 1 Generator (\texttt{hcup\_table1.py})}
+\begin{itemize}
+  \item Reads from the pre-built CSV — does NOT touch raw ASC files
+  \item Outputs Table 1: demographics, race, LOS, comorbidities by cohort
+  \item Saves to \texttt{HCUP\_Table1.csv} and \texttt{HCUP\_Cohort\_By\_Year.csv}
+\end{itemize}
+
+\subsubsection{Report (\texttt{HCUP\_ADRD\_Report.tex})}
+\begin{itemize}
+  \item Answers professor's questions: cohort definitions, ADRD ICD codes,
+        patient identity limitation, inclusions/exclusions, Table 1
+\end{itemize}
+
+\subsection{What Still Needs to Be Done}
+
+\begin{tcolorbox}[colback=warnred!8, colframe=warnred,
+  title=\textbf{Pending Tasks — Project 2}]
+\begin{enumerate}[itemsep=6pt]
+  \item \textbf{Fix PAY1 (primary payer) column positions} \\
+        Current values are mostly \texttt{-9} (missing) — column byte positions in
+        \texttt{get\_col\_dict()} are misaligned for PAY1. Verify against
+        \texttt{SASload\_NIS\_YYYY\_Core.SAS} for each year. Once fixed, delete CSV
+        and rerun \texttt{hcup\_adrd\_falls\_cohorts.py}.
+
+  \item \textbf{Fix ZIPINC\_QRTL (zip income quartile) column positions} \\
+        Same issue as PAY1 — values appear offset. Verify from SAS load file.
+
+  \item \textbf{Fix DISPUNIFORM (discharge disposition) column positions} \\
+        Values appear as 3-digit strings (e.g., \texttt{136}) instead of 1–2 digit
+        codes. Column window is reading adjacent bytes. Verify and fix.
+
+  \item \textbf{Add HOSPID to saved columns, then merge NIS Hospital file} \\
+        \texttt{HOSPID} (hospital identifier) is not currently saved in the CSV.
+        Steps:
+        \begin{enumerate}
+          \item Add \texttt{HOSPID} to the \texttt{keep} list in
+                \texttt{hcup\_adrd\_falls\_cohorts.py}
+          \item Delete \texttt{HCUP\_ADRD\_Falls\_Cohorts.csv} and rerun the script
+                (one-time, $\sim$30–60 min)
+          \item In \texttt{hcup\_table1.py}, load each year's
+                \texttt{NIS\_YYYY\_Hospital.ASC} and merge on \texttt{HOSPID + YEAR}
+                to get \texttt{HOSP\_REGION} and \texttt{HOSP\_LOCTEACH}
+        \end{enumerate}
+
+  \item \textbf{Resolve UNCLASSIFIED cohort (144,643 records)} \\
+        Professor must decide: merge into Cohort 1, create a 4th cohort, or exclude.
+
+  \item \textbf{Apply NIS discharge weights (\texttt{DISCWT})} \\
+        For nationally representative estimates, all proportions should be weighted.
+        \texttt{DISCWT} is in the NIS Core file and must be saved and applied.
+
+  \item \textbf{Statistical testing for Table 1} \\
+        Add chi-square p-values for categorical variables and ANOVA/Kruskal-Wallis
+        for continuous variables comparing the three cohorts.
+\end{enumerate}
+\end{tcolorbox}
+
+\subsection{Key Files — Project 2}
+
+\begin{center}
+\begin{tabular}{lp{9cm}}
+\toprule
+\textbf{File} & \textbf{Purpose} \\
+\midrule
+\texttt{hcup\_adrd\_falls\_cohorts.py} & Main cohort builder — reads raw ASC files,
+  assigns cohorts, saves CSV \\
+\texttt{hcup\_table1.py}              & Analysis script — reads CSV, generates Table 1 \\
+\texttt{hcup\_analysis.py}            & Exploratory script — fall/Alzheimer counts (preliminary) \\
+\texttt{HCUP\_ADRD\_Falls\_Cohorts.csv} & Pre-built cohort CSV — 2,495,798 rows,
+  all 7 years (do not delete unless fixing column issues) \\
+\texttt{HCUP\_Table1.csv}             & Table 1 output \\
+\texttt{HCUP\_Cohort\_By\_Year.csv}   & Yearly cohort breakdown \\
+\texttt{HCUP\_ADRD\_Report.tex}       & Report answering professor's questions \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Raw Data File Locations (Do Not Move)}
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+\textbf{Year} & \textbf{Path} \\
+\midrule
+2016 & \texttt{D:\textbackslash HCUP\textbackslash NIS\textbackslash NIS Decoded\textbackslash 2016\textbackslash NIS\_2016\_Core.ASC} \\
+2017 & \texttt{D:\textbackslash HCUP\textbackslash NIS\textbackslash NIS Decoded\textbackslash 2017\textbackslash NIS\_2017\_Core.ASC} \\
+2018 & \texttt{D:\textbackslash HCUP\textbackslash NIS\textbackslash NIS Decoded\textbackslash 2018\textbackslash NIS\_2018\_Core.ASC} \\
+2019 & \texttt{D:\textbackslash HCUP\textbackslash NIS\textbackslash NIS Decoded\textbackslash 2019\textbackslash NIS\_2019\_Core.ASC} \\
+2020 & \texttt{D:\textbackslash HCUP\textbackslash NIS\textbackslash NIS 2020\textbackslash NIS\_2020\_Core.ASC} \\
+2021 & \texttt{D:\textbackslash HCUP\textbackslash NIS\textbackslash NIS 2021\textbackslash NIS\_2021\textbackslash NIS\_2021\_Core\textbackslash NIS\_2021\_Core.ASC} \\
+2022 & \texttt{D:\textbackslash HCUP\textbackslash NIS\textbackslash NIS 2022\textbackslash NIS\_2022\textbackslash NIS\_2022\_Core\textbackslash NIS\_2022\_Core.ASC} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{How to Run — Project 2}
+
+\begin{enumerate}
+  \item \textbf{Analysis only (CSV already built):}
+        \texttt{python hcup\_table1.py} — generates Table 1 from existing CSV
+  \item \textbf{Full rebuild} (if columns fixed or new years added):
+        Delete \texttt{HCUP\_ADRD\_Falls\_Cohorts.csv}, then
+        \texttt{python hcup\_adrd\_falls\_cohorts.py} ($\sim$30–60 min)
+  \item \textbf{Do NOT run both scripts simultaneously} — the cohort builder
+        appends to the CSV; running table1.py mid-build will give partial results
+\end{enumerate}
+
+\newpage
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Summary — What Is Done vs.\ Pending}
+% ══════════════════════════════════════════════════════════════════════════════
+
+\begin{center}
+\renewcommand{\arraystretch}{1.4}
+\begin{tabularx}{\textwidth}{Xll}
+\toprule
+\textbf{Task} & \textbf{Project} & \textbf{Status} \\
+\midrule
+SEER data filtered and preprocessed          & SEER ML  & \textcolor{projgreen}{\textbf{Done}} \\
+XGBoost model trained and calibrated         & SEER ML  & \textcolor{projgreen}{\textbf{Done}} \\
+Prediction pipeline fixed (encoding bug)     & SEER ML  & \textcolor{projgreen}{\textbf{Done}} \\
+Streamlit app built and tested (10 cases)    & SEER ML  & \textcolor{projgreen}{\textbf{Done}} \\
+3-page LaTeX report written                  & SEER ML  & \textcolor{projgreen}{\textbf{Done}} \\
+Add screenshots (out1.png–out10.png) to Overleaf & SEER ML & \textcolor{warnred}{\textbf{Pending}} \\
+Guthrie external validation                  & SEER ML  & \textcolor{warnred}{\textbf{Pending — awaiting data}} \\
+\midrule
+HCUP raw ASC files parsed (all 7 years)      & HCUP NIS & \textcolor{projgreen}{\textbf{Done}} \\
+Three cohorts built and saved to CSV         & HCUP NIS & \textcolor{projgreen}{\textbf{Done}} \\
+Elixhauser comorbidity flags computed        & HCUP NIS & \textcolor{projgreen}{\textbf{Done}} \\
+Table 1 (age, sex, race, comorbidities)      & HCUP NIS & \textcolor{projgreen}{\textbf{Done}} \\
+Study design report for professor            & HCUP NIS & \textcolor{projgreen}{\textbf{Done}} \\
+PAY1 / ZipInc / DISPUNIFORM column fix      & HCUP NIS & \textcolor{warnred}{\textbf{Pending}} \\
+Hospital file merge (region, teaching)       & HCUP NIS & \textcolor{warnred}{\textbf{Pending}} \\
+DISCWT survey weights applied               & HCUP NIS & \textcolor{warnred}{\textbf{Pending}} \\
+Unclassified cohort decision (144K records)  & HCUP NIS & \textcolor{warnred}{\textbf{Awaiting professor}} \\
+Statistical testing (chi-sq, ANOVA) for Table 1 & HCUP NIS & \textcolor{warnred}{\textbf{Pending}} \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+% ── Footer ───────────────────────────────────────────────────────────────────
+\vspace{1cm}
+\noindent\rule{\linewidth}{0.5pt}
+\small
+\noindent \textbf{Contact:} Sriirohit Prakash · \texttt{sprakash1@binghamton.edu} ·
+Binghamton University, Department of Systems Science \& Industrial Engineering\\
+\textbf{Supervisor:} Professor Ertem\\
+\textbf{GitHub:} Private repository — request access from the author\\
+\textbf{All raw data files} are stored on the lab machine under \texttt{D:\textbackslash HCUP\textbackslash}
+(NIS) and must remain there. SEER \texttt{export.txt} is gitignored and stored locally only.
+
+\end{document}

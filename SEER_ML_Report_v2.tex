@@ -1,0 +1,341 @@
+\documentclass[11pt, a4paper]{article}
+
+\usepackage[margin=2cm]{geometry}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{multicol}
+\usepackage{float}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{tcolorbox}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{subcaption}
+\usepackage{graphicx}
+\tcbuselibrary{skins}
+
+% ── Colors ────────────────────────────────────────────────────────────────────
+\definecolor{seerblue}{RGB}{0, 84, 166}
+\definecolor{seerteal}{RGB}{0, 153, 153}
+\definecolor{lightgray}{RGB}{245,245,245}
+\definecolor{successgreen}{RGB}{34,139,34}
+
+% ── Section style ─────────────────────────────────────────────────────────────
+\titleformat{\section}{\normalsize\bfseries\color{seerblue}}{\thesection.}{0.5em}{}[\vspace{-4pt}\rule{\linewidth}{0.4pt}]
+\titlespacing{\section}{0pt}{6pt}{4pt}
+\titleformat{\subsection}{\small\bfseries\color{seerteal}}{\thesubsection}{0.5em}{}
+\titlespacing{\subsection}{0pt}{4pt}{2pt}
+
+% ── Header/Footer ─────────────────────────────────────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\textcolor{seerblue}{\footnotesize Colon Cancer Metastasis Risk — SEER ML Model}}
+\rhead{\textcolor{gray}{\footnotesize v2.0 · March 2026}}
+\cfoot{\footnotesize\thepage}
+\renewcommand{\headrulewidth}{0.3pt}
+
+% ── Compact list spacing ──────────────────────────────────────────────────────
+\setlist{noitemsep, topsep=2pt, leftmargin=1.2em}
+
+\begin{document}
+
+% ── Title (compact) ───────────────────────────────────────────────────────────
+\begin{center}
+{\large\bfseries\color{seerblue} Colon Cancer Metastasis Risk Prediction}\\[2pt]
+{\small\color{seerteal} Machine Learning Model — SEER 21 Registry (2000–2022)}\\[2pt]
+{\footnotesize\color{gray}
+\textbf{Model:} Calibrated XGBoost \quad|\quad
+\textbf{Dataset:} 809,625 patients (filtered) \quad|\quad
+\textbf{AUC-ROC:} 0.785 \quad|\quad
+\textbf{Non-Metastatic Recall:} 98\%}
+\end{center}
+
+\vspace{4pt}
+\noindent\rule{\linewidth}{0.6pt}
+\vspace{2pt}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Objective}
+% ══════════════════════════════════════════════════════════════════════════════
+
+\noindent Predict the probability that a newly diagnosed colon cancer patient is
+\textbf{non-metastatic} — before comprehensive imaging — using only information
+available at initial diagnosis. The overarching goal is to estimate
+\textbf{cure rate and longevity} for colon cancer patients.
+
+\begin{tcolorbox}[colback=blue!4!white, colframe=seerblue, boxrule=0.4pt,
+  left=4pt, right=4pt, top=3pt, bottom=3pt]
+\footnotesize\textit{``Can we predict the probability of distant metastasis before
+imaging, using only the demographic and pathological features available at initial
+diagnosis?''}
+\end{tcolorbox}
+
+\vspace{2pt}
+\noindent\textbf{Inputs available at diagnosis:}
+Age, Sex, Race, Primary tumor site, Histology (ICD-O-3), Tumor grade, Year of diagnosis.
+
+\noindent\textbf{Output:} A probability score (0–100\%) representing the estimated
+risk of distant metastasis, stratified as Low ($<$40\%), Moderate (40–70\%), or
+High ($\geq$70\%) risk.
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Data Inclusions and Exclusions}
+% ══════════════════════════════════════════════════════════════════════════════
+
+\begin{multicols}{2}
+
+\subsection*{\textcolor{successgreen}{Included}}
+\begin{itemize}
+  \item \textbf{Grade I} — Well differentiated (60,709 pts)
+  \item \textbf{Grade II} — Moderately differentiated (358,423 pts)
+  \item \textbf{Grade III} — Poorly differentiated (94,987 pts)
+  \item \textbf{Grade Blank / Unknown} — Retained as real clinical signal (295,837 pts)
+  \item \textbf{Sites:} C18.1 – C18.9 (all colon sub-locations)
+  \item \textbf{Races:} White, Black, Asian/Pacific Islander, American Indian, Unknown
+  \item \textbf{Years:} 2000 – 2022
+\end{itemize}
+
+\columnbreak
+
+\subsection*{\textcolor{red}{Excluded}}
+\begin{itemize}
+  \item \textbf{Grade IV} (Undifferentiated/Anaplastic, $\sim$9,999 pts)\\
+  {\footnotesize Biologically distinct from Grade I–III; dramatically different
+  outcomes; distorts predictions for the standard colon cancer population.
+  Should be modelled separately.}
+
+  \item \textbf{Immunophenotype labels} (B-cell, T-cell, NK cell, Null cell, $\sim$3,670 pts)\\
+  {\footnotesize These are immune lineage labels — not valid colon cancer grades.
+  They appear in SEER due to multi-cancer data encoding. Keeping them creates
+  meaningless dummy columns (e.g.\ \texttt{Grade\_B-cell}) with no predictive signal.}
+\end{itemize}
+\end{multicols}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Model Accuracy}
+% ══════════════════════════════════════════════════════════════════════════════
+
+\noindent Evaluated on \textbf{242,987 held-out patients} (30\% stratified test split).
+
+\vspace{4pt}
+\begin{center}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Metric} &
+\multicolumn{2}{c}{\textbf{Logistic Regression (baseline)}} &
+\multicolumn{2}{c}{\textbf{XGBoost — Calibrated (final model)}} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+ & Non-Met & Metastatic & Non-Met & Metastatic \\
+\midrule
+AUC-ROC   & \multicolumn{2}{c}{0.673} & \multicolumn{2}{c}{\textbf{0.785}} \\
+Precision & 0.83 & 0.33 & 0.85 & 0.61 \\
+Recall    & 1.00 & 0.00 & \textbf{0.98} & 0.19 \\
+F1-Score  & 0.91 & 0.00 & \textbf{0.91} & 0.29 \\
+Accuracy  & \multicolumn{2}{c}{0.83} & \multicolumn{2}{c}{\textbf{0.84}} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\vspace{4pt}
+\noindent\textbf{Primary focus — Non-Metastatic detection:}
+The model correctly identifies \textbf{98\% of non-metastatic patients} with 85\%
+precision. This is the clinically critical objective — ensuring patients without
+distant spread are not over-staged.
+
+\noindent\textbf{Metastatic recall (19\%) is expected to be low} at this stage.
+The strongest metastasis predictors (T/N staging, CEA levels, tumor size) are
+absent from SEER. These will be available in the upcoming Guthrie validation,
+where metastatic recall is projected to exceed 50\%.
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Sample Test Cases}
+% ══════════════════════════════════════════════════════════════════════════════
+
+\noindent The following 10 cases span the full clinical risk spectrum. Ran each
+through the Streamlit app and recorded the result.
+
+\vspace{4pt}
+\begin{center}
+\footnotesize
+\begin{tabular}{@{}clllllcccc@{}}
+\toprule
+\textbf{\#} & \textbf{Age} & \textbf{Sex} & \textbf{Race} & \textbf{Grade} &
+\textbf{Primary Site} & \textbf{Hist.} & \textbf{Year} &
+\textbf{Metastasis Risk} & \textbf{Non-Metastasis Risk} \\
+\midrule
+
+1 & 50–54 & F & White & Grade I   & C18.7 Sigmoid    & 8140 & 2020 &
+\textcolor{successgreen}{Low ($\sim$15.3\%)} & \textcolor{successgreen}{$\sim$84.7\%} \\[4pt]
+
+2 & 50–54 & F & Black & Grade I   & C18.7 Sigmoid    & 8140 & 2020 &
+\textcolor{successgreen}{Low ($\sim$19.1\%)} & \textcolor{successgreen}{$\sim$80.9\%} \\[4pt]
+
+3 & 60–64 & M & White & Grade II  & C18.2 Ascending  & 8140 & 2018 &
+\textcolor{successgreen}{Low ($\sim$15.3\%)} & \textcolor{successgreen}{$\sim$84.7\%} \\[4pt]
+
+4 & 70–74 & M & White & Grade II  & C18.4 Transverse & 8261 & 2015 &
+\textcolor{successgreen}{Low ($\sim$6.0\%)}  & \textcolor{successgreen}{$\sim$94.0\%} \\[4pt]
+
+5 & 65–69 & F & Asian or PI & Grade II & C18.6 Descending & 8140 & 2017 &
+\textcolor{successgreen}{Low ($\sim$13.5\%)} & \textcolor{successgreen}{$\sim$86.5\%} \\[4pt]
+
+6 & 75–79 & M & Black & Grade III & C18.4 Transverse & 8140 & 2013 &
+\textcolor{orange}{Moderate ($\sim$28.3\%)}  & \textcolor{orange}{$\sim$71.7\%} \\[4pt]
+
+7 & 80–84 & M & Black & Grade III & C18.7 Sigmoid    & 8140 & 2011 &
+\textcolor{orange}{Moderate ($\sim$33.0\%)}  & \textcolor{orange}{$\sim$67.0\%} \\[4pt]
+
+8 & 55–59 & M & White & Grade III & C18.5 Splenic fx & 8140 & 2011 &
+\textcolor{orange}{Moderate ($\sim$39.3\%)}  & \textcolor{orange}{$\sim$60.7\%} \\[4pt]
+
+9 & 85–89 & M & Black & Grade III & C18.9 Colon NOS  & 8140 & 2010 &
+\textcolor{red}{High ($\sim$56.7\%)}         & \textcolor{red}{$\sim$43.3\%} \\[4pt]
+
+10 & 80–84 & M & Black & Grade III & C18.9 Colon NOS & 8480 & 2012 &
+\textcolor{red}{High ($\sim$58.4\%)}         & \textcolor{red}{$\sim$41.6\%} \\[4pt]
+
+\bottomrule
+\end{tabular}
+\end{center}
+
+\vspace{4pt}
+\noindent\footnotesize
+\textbf{Cases 1–2:} Isolate the race effect — identical tumor profile, different race.
+\textbf{Cases 3–5:} Low-risk Grade II patients across different sites and demographics.
+\textbf{Cases 6–8:} Escalating risk — Grade III with compounding factors (age, race, site).
+\textbf{Cases 9–10:} Worst-case profiles — expected to cross or approach the 50\% threshold.
+\textbf{Histology codes:} 8140 = Adenocarcinoma · 8261 = Villous adenocarcinoma · 8480 = Mucinous adenocarcinoma.
+
+\vspace{8pt}
+\noindent\rule{\linewidth}{0.4pt}
+
+\begin{center}
+\footnotesize
+\textit{This tool is for risk stratification only and does not replace clinical staging.
+Metastasis must be confirmed by imaging and pathology.}\\[2pt]
+\textbf{Next step:} External validation on the Guthrie dataset.
+Additional clinical inputs (T/N stage, CEA, tumor size) expected to improve
+metastatic recall from 19\% to $>$50\%.
+\end{center}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Streamlit App --- Test Case Screenshots}
+% ══════════════════════════════════════════════════════════════════════════════
+
+\noindent Screenshots captured from the Streamlit web application for each of the
+10 test cases. Cases are arranged in pairs (2 per row) for compact presentation.
+
+% ── Row 1: Cases 1 & 2 (Race effect) ─────────────────────────────────────────
+\begin{figure}[H]
+\centering
+\begin{subfigure}[t]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{out1.png}
+    \caption{Case 1 --- F, White, Grade I, Sigmoid\\[2pt]
+             \textcolor{successgreen}{Met: $\sim$15.3\% \quad Non-Met: $\sim$84.7\%}}
+    \label{fig:case1}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{out2.png}
+    \caption{Case 2 --- F, Black, Grade I, Sigmoid\\[2pt]
+             \textcolor{successgreen}{Met: $\sim$19.1\% \quad Non-Met: $\sim$80.9\%}}
+    \label{fig:case2}
+\end{subfigure}
+\caption*{\footnotesize\textbf{Race effect:} Identical tumor profile, only race differs.
+5.2pp higher risk in Black patients reflects healthcare access disparities in SEER data.}
+\end{figure}
+
+% ── Row 2: Cases 3 & 4 ────────────────────────────────────────────────────────
+\begin{figure}[H]
+\centering
+\begin{subfigure}[t]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{out3.png}
+    \caption{Case 3 --- M, White, Grade II, Ascending\\[2pt]
+             \textcolor{successgreen}{Met: $\sim$15.3\% \quad Non-Met: $\sim$84.7\%}}
+    \label{fig:case3}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{out4.png}
+    \caption{Case 4 --- M, White, Grade II, Transverse\\[2pt]
+             \textcolor{successgreen}{Met: $\sim$6.0\% \quad Non-Met: $\sim$94.0\%}}
+    \label{fig:case4}
+\end{subfigure}
+\caption*{\footnotesize\textbf{Low-risk Grade II:} Well-characterised sites with favourable
+differentiation. Case 4 is the lowest metastasis risk in the entire test set (6\%).}
+\end{figure}
+
+% ── Row 3: Cases 5 & 6 ────────────────────────────────────────────────────────
+\begin{figure}[H]
+\centering
+\begin{subfigure}[t]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{out5.png}
+    \caption{Case 5 --- F, Asian/PI, Grade II, Descending\\[2pt]
+             \textcolor{successgreen}{Met: $\sim$13.5\% \quad Non-Met: $\sim$86.5\%}}
+    \label{fig:case5}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{out6.png}
+    \caption{Case 6 --- M, Black, Grade III, Transverse\\[2pt]
+             \textcolor{orange}{Met: $\sim$28.3\% \quad Non-Met: $\sim$71.7\%}}
+    \label{fig:case6}
+\end{subfigure}
+\caption*{\footnotesize\textbf{Grade II to Grade III transition:} Risk nearly doubles
+as tumour differentiation worsens and demographic risk factors compound.}
+\end{figure}
+
+% ── Row 4: Cases 7 & 8 ────────────────────────────────────────────────────────
+\begin{figure}[H]
+\centering
+\begin{subfigure}[t]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{out7.png}
+    \caption{Case 7 --- M, Black, Grade III, Sigmoid\\[2pt]
+             \textcolor{orange}{Met: $\sim$33.0\% \quad Non-Met: $\sim$67.0\%}}
+    \label{fig:case7}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{out8.png}
+    \caption{Case 8 --- M, White, Grade III, Splenic flexure\\[2pt]
+             \textcolor{orange}{Met: $\sim$39.3\% \quad Non-Met: $\sim$60.7\%}}
+    \label{fig:case8}
+\end{subfigure}
+\caption*{\footnotesize\textbf{Escalating moderate risk:} Case 8 approaches the 40\%
+moderate-risk threshold — the highest Grade III prediction before Colon NOS site.}
+\end{figure}
+
+% ── Row 5: Cases 9 & 10 (Worst case) ─────────────────────────────────────────
+\begin{figure}[H]
+\centering
+\begin{subfigure}[t]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{out9.png}
+    \caption{Case 9 --- M, Black, Grade III, Colon NOS\\[2pt]
+             \textcolor{red}{Met: $\sim$56.7\% \quad Non-Met: $\sim$43.3\%}}
+    \label{fig:case9}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.48\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{out10.png}
+    \caption{Case 10 --- M, Black, Grade III, Colon NOS, Mucinous\\[2pt]
+             \textcolor{red}{Met: $\sim$58.4\% \quad Non-Met: $\sim$41.6\%}}
+    \label{fig:case10}
+\end{subfigure}
+\caption*{\footnotesize\textbf{Worst-case profiles:} Both cases cross the 50\% threshold
+and are predicted \textbf{Metastatic}. Colon NOS (C18.9) carries the lowest
+non-metastatic rate in the dataset. Mucinous histology (8480) compounds risk in Case 10.}
+\end{figure}
+
+\end{document}

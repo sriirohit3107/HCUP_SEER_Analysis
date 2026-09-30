@@ -1,0 +1,452 @@
+\documentclass[11pt, a4paper]{article}
+
+\usepackage[margin=2cm]{geometry}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{float}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{tcolorbox}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{graphicx}
+\usepackage{colortbl}
+\usepackage{pdflscape}
+\tcbuselibrary{skins}
+
+% ── Colors ────────────────────────────────────────────────────────────────────
+\definecolor{seerblue}{RGB}{0, 84, 166}
+\definecolor{seerteal}{RGB}{0, 153, 153}
+\definecolor{lightgray}{RGB}{245,245,245}
+\definecolor{answergreen}{RGB}{34,139,34}
+\definecolor{questionred}{RGB}{180,0,0}
+
+% ── Section style ─────────────────────────────────────────────────────────────
+\titleformat{\section}{\large\bfseries\color{seerblue}}{\thesection.}{0.5em}{}[\vspace{-4pt}\rule{\linewidth}{0.6pt}]
+\titlespacing{\section}{0pt}{10pt}{6pt}
+\titleformat{\subsection}{\normalsize\bfseries\color{seerteal}}{\thesubsection}{0.5em}{}
+\titlespacing{\subsection}{0pt}{6pt}{3pt}
+
+% ── Boxes ─────────────────────────────────────────────────────────────────────
+\newtcolorbox{answerbox}{
+  colback=white, colframe=answergreen,
+  fonttitle=\bfseries\small, title=Answer,
+  left=4pt, right=4pt, top=3pt, bottom=3pt
+}
+\newtcolorbox{samplebox}{
+  colback=lightgray, colframe=seerblue,
+  fonttitle=\bfseries\small, title=Sample Patient Record,
+  left=4pt, right=4pt, top=3pt, bottom=3pt
+}
+
+% ── Header / Footer ───────────────────────────────────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{\small HCUP NIS \& SEER Data Report}
+\lhead{\small Guthrie / Seer ML Project}
+\rfoot{\small Page \thepage}
+\lfoot{\small Prepared by: Rohit \quad \today}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\begin{document}
+
+% ── Title ─────────────────────────────────────────────────────────────────────
+\begin{center}
+  {\LARGE \textbf{\color{seerblue} HCUP NIS \& SEER Data Report}}\\[6pt]
+  {\large Responses to Dr.\ Cagir's Data Questions}\\[4pt]
+  {\small Prepared by: Rohit \quad | \quad \today}
+\end{center}
+\vspace{4pt}
+\noindent\rule{\linewidth}{0.8pt}
+\vspace{4pt}
+
+% =============================================================================
+\section{SEER Data}
+% =============================================================================
+
+\subsection*{Q1. Is it based on county or state level?}
+\begin{answerbox}
+The current SEER export does \textbf{not} include county or state-level geographic fields. SEER data is organized by \textbf{cancer registry regions} (e.g., SEER 9, SEER 17, SEER 21), which cover specific geographic areas but are not mapped to individual counties or states in our export.
+\end{answerbox}
+
+\vspace{6pt}
+
+\subsection*{Q2. Could you look into the counts of the fall patients?}
+\begin{answerbox}
+\textbf{Not applicable for SEER.} SEER is a cancer registry and only captures cancer diagnoses, staging, histology, and survival outcomes. It does not contain fall-related events or injury diagnoses. Fall data is available in the \textbf{HCUP NIS} dataset (see Section~2).
+\end{answerbox}
+
+\vspace{6pt}
+
+\subsection*{Q3. Number of Alzheimer's patients?}
+\begin{answerbox}
+\textbf{Not applicable for SEER.} SEER tracks cancer diagnoses only and does not capture Alzheimer's disease or other neurological conditions. Alzheimer's patient counts are available in the \textbf{HCUP NIS} dataset (see Section~2).
+\end{answerbox}
+
+\vspace{6pt}
+
+\subsection*{Q4. SEER Data: Stage Information \& All Possible Features}
+\begin{answerbox}
+\textbf{Yes, stage information is included.} The SEER dataset contains 9 features. Below is the complete feature list for Dr.\ Cagir's review.
+\end{answerbox}
+
+\vspace{6pt}
+\noindent\textbf{Complete Feature List (SEER Colon Cancer Dataset):}
+\vspace{4pt}
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{>{\bfseries}p{4.5cm} p{4.5cm} p{5.5cm}}
+\toprule
+\textbf{Feature} & \textbf{Type / Values} & \textbf{Description} \\
+\midrule
+Age\_at\_diagnosis    & Categorical (5-yr bins) & Age group at time of diagnosis (e.g., ``60--64 years'') \\
+Sex                   & Binary                  & Male / Female \\
+Year\_of\_diagnosis   & Integer (2000--2022)     & Calendar year of cancer diagnosis \\
+Race                  & Categorical             & White, Black, Asian/PI, Am.\ Indian, Unknown \\
+Primary\_site         & ICD-O code              & Colon sub-site (C18.1--C18.9, e.g., Sigmoid colon) \\
+Histology             & ICD-O-3 numeric         & Tumor cell type (e.g., 8140 = Adenocarcinoma) \\
+Grade                 & Ordinal (I--III)        & Tumor differentiation: Well / Moderate / Poor \\
+\rowcolor{lightgray}
+\textbf{Stage}        & \textbf{Categorical}    & \textbf{SEER Summary Stage --- see distribution below} \\
+Patient\_ID           & Anonymized numeric      & De-identified patient record number \\
+\bottomrule
+\end{tabular}
+\caption{All available features in the SEER Colon Cancer dataset.}
+\end{table}
+
+\vspace{6pt}
+\noindent\textbf{Stage Distribution (823,626 patients):}
+\vspace{4pt}
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{lrr}
+\toprule
+\textbf{Stage} & \textbf{Count} & \textbf{\%} \\
+\midrule
+Localized only                                               & 249,908 & 30.3\% \\
+Blank(s)                                                     & 149,367 & 18.1\% \\
+Distant site(s)/node(s) involved                             & 143,442 & 17.4\% \\
+Regional by direct extension only                            &  82,290 & 10.0\% \\
+Regional by both direct extension and lymph node involvement &  74,466 &  9.0\% \\
+Regional lymph nodes involved only                           &  71,380 &  8.7\% \\
+Unknown/unstaged/unspecified/DCO                             &  52,731 &  6.4\% \\
+In situ                                                      &      42 &  0.0\% \\
+\midrule
+\textbf{Total}                                               & \textbf{823,626} & \textbf{100\%} \\
+\bottomrule
+\end{tabular}
+\caption{SEER stage distribution across 823,626 colon cancer patients (2000--2022).}
+\end{table}
+
+\vspace{6pt}
+\noindent\textbf{Sample Patient Record (SEER):}
+
+\begin{samplebox}
+\begin{tabular}{ll}
+Age at Diagnosis  & 80--84 years \\
+Sex               & Female \\
+Year of Diagnosis & 2008 \\
+Race              & White \\
+Primary Site      & C18.2 --- Ascending colon \\
+Histology         & 8140 (Adenocarcinoma) \\
+Grade             & III --- Poorly differentiated \\
+Stage             & Regional by both direct extension and lymph node involvement \\
+Patient ID        & 00000377 (de-identified) \\
+\end{tabular}
+\end{samplebox}
+
+\vspace{10pt}
+
+% =============================================================================
+\section{HCUP NIS Data (2016--2022)}
+% =============================================================================
+
+\noindent\textbf{Data Source:} Healthcare Cost and Utilization Project (HCUP) --- National Inpatient Sample (NIS)\\
+\textbf{Coverage:} 2016--2022 \quad \textbf{Total years:} 7 \quad \textbf{Total discharges:} $\sim$48.2 million
+
+\vspace{6pt}
+
+\subsection*{Q1. Is it based on county or state level?}
+\begin{answerbox}
+\textbf{No --- HCUP NIS does not include patient county or state of residence.} This is by design to protect patient privacy. The available geographic variables are:
+\begin{itemize}[noitemsep]
+  \item \texttt{HOSP\_DIVISION} --- Census Division of the hospital (9 divisions)
+  \item \texttt{HOSP\_REGION} --- Census Region of the hospital (Northeast, Midwest, South, West)
+  \item \texttt{PL\_NCHS} --- NCHS Urban--Rural classification of patient ZIP code
+\end{itemize}
+Analysis can be performed at the \textbf{regional} or \textbf{urban-rural} level, but not at county or state level.
+\end{answerbox}
+
+\vspace{6pt}
+
+\subsection*{Q2. Counts of Fall Patients}
+\begin{answerbox}
+Fall patients were identified using \textbf{ICD-10-CM codes W00--W19} across all diagnosis fields (\texttt{I10\_DX1} through \texttt{I10\_DX40}). For 2016, external cause fields (\texttt{I10\_ECAUSE1--4}) were also included.
+\end{answerbox}
+
+\vspace{6pt}
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{rrrr}
+\toprule
+\textbf{Year} & \textbf{Total Discharges} & \textbf{Fall Patients} & \textbf{Fall \%} \\
+\midrule
+2016 & 7,135,090 & 293,323 & 4.11\% \\
+2017 & 7,159,694 & 305,969 & 4.27\% \\
+2018 & 7,105,498 & 321,243 & 4.52\% \\
+2019 & 7,083,805 & 327,824 & 4.63\% \\
+2020 & 6,471,165 & 319,525 & 4.94\% \\
+2021 & 6,666,752 & 329,862 & 4.95\% \\
+2022 & 6,578,372 & 350,238 & 5.32\% \\
+\midrule
+\textbf{Total} & \textbf{48,200,376} & \textbf{2,247,984} & \textbf{4.66\%} \\
+\bottomrule
+\end{tabular}
+\caption{Fall patient counts by year (ICD-10 W00--W19), HCUP NIS 2016--2022.}
+\end{table}
+
+\noindent\textit{Note: Falls are trending upward from 4.11\% (2016) to 5.32\% (2022). Total discharges declined in 2020--2022 due to the COVID-19 pandemic.}
+
+\vspace{6pt}
+
+\subsection*{Q3. Number of Alzheimer's Patients}
+\begin{answerbox}
+Alzheimer's patients were identified using \textbf{ICD-10-CM code G30.x} across all diagnosis fields.
+\end{answerbox}
+
+\vspace{6pt}
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{rrrr}
+\toprule
+\textbf{Year} & \textbf{Total Discharges} & \textbf{Alzheimer's Patients} & \textbf{Alzheimer's \%} \\
+\midrule
+2016 & 7,135,090 &  88,654 & 1.24\% \\
+2017 & 7,159,694 &  90,448 & 1.26\% \\
+2018 & 7,105,498 &  86,955 & 1.22\% \\
+2019 & 7,083,805 &  82,795 & 1.17\% \\
+2020 & 6,471,165 &  75,066 & 1.16\% \\
+2021 & 6,666,752 &  69,644 & 1.04\% \\
+2022 & 6,578,372 &  70,329 & 1.07\% \\
+\midrule
+\textbf{Total} & \textbf{48,200,376} & \textbf{563,891} & \textbf{1.17\%} \\
+\bottomrule
+\end{tabular}
+\caption{Alzheimer's patient counts by year (ICD-10 G30.x), HCUP NIS 2016--2022.}
+\end{table}
+
+\noindent\textit{Note: Alzheimer's inpatient stays peaked in 2017 and declined since, reflecting a shift toward outpatient/memory care and COVID-19 impacts on 2020+ admissions.}
+
+\vspace{6pt}
+
+\subsection*{Q4. Sample Patient Record (HCUP NIS)}
+\begin{answerbox}
+Below is a sample fall patient record extracted from the 2016 NIS Core file.
+\end{answerbox}
+
+\begin{samplebox}
+\begin{tabular}{ll}
+Record ID (KEY\_NIS)  & 10001095 (de-identified) \\
+Age                   & 90 years \\
+Sex                   & Female \\
+Race                  & 1 (White) \\
+Length of Stay        & 4 days \\
+Year                  & 2016 \\
+Primary Diagnosis     & S72141A --- Displaced intertrochanteric fracture of femur \\
+Diagnosis 2           & D569 --- Anemia, unspecified \\
+Diagnosis 3           & I10 --- Essential (primary) hypertension \\
+\end{tabular}
+\end{samplebox}
+
+\vspace{10pt}
+
+% =============================================================================
+\section{SEER Initial Analysis by Stage}
+% =============================================================================
+
+\noindent This section presents the initial exploratory analysis of 823,626 SEER colon cancer patients stratified by stage.
+
+\vspace{6pt}
+
+% ── 1. Sex by Stage ───────────────────────────────────────────────────────────
+\subsection*{3.1 Sex by Stage}
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{lrrr}
+\toprule
+\textbf{Stage} & \textbf{Female} & \textbf{Male} & \textbf{Total} \\
+\midrule
+Localized only                                               & 119,815 & 130,093 & 249,908 \\
+Blank(s)                                                     &  74,756 &  74,611 & 149,367 \\
+Distant site(s)/node(s) involved                             &  68,724 &  74,718 & 143,442 \\
+Regional by direct extension only                            &  40,638 &  41,652 &  82,290 \\
+Regional by both direct extension and lymph node involvement &  36,719 &  37,747 &  74,466 \\
+Regional lymph nodes involved only                           &  35,139 &  36,241 &  71,380 \\
+Unknown/unstaged/unspecified/DCO                             &  27,254 &  25,477 &  52,731 \\
+In situ                                                      &      23 &      19 &      42 \\
+\midrule
+\textbf{Total}                                               & \textbf{403,068} & \textbf{420,558} & \textbf{823,626} \\
+\bottomrule
+\end{tabular}
+\caption{Sex distribution by stage --- SEER colon cancer patients.}
+\end{table}
+
+\noindent\textit{Sex distribution is nearly equal across all stages. Males slightly outnumber females overall (51\% vs 49\%).}
+
+\vspace{6pt}
+
+% ── 2. Race by Stage ──────────────────────────────────────────────────────────
+\subsection*{3.2 Race by Stage}
+
+\begin{table}[H]
+\centering
+\small
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{lrrrrr}
+\toprule
+\textbf{Stage} & \textbf{White} & \textbf{Black} & \textbf{Asian/PI} & \textbf{Am.\ Indian} & \textbf{Unknown} \\
+\midrule
+Localized only                                               & 201,055 & 29,534 & 15,628 & 1,339 & 2,352 \\
+Blank(s)                                                     & 124,598 & 17,301 &  6,635 &   463 &   370 \\
+Distant site(s)/node(s) involved                             & 110,178 & 22,571 &  9,339 &   890 &   464 \\
+Regional by direct extension only                            &  67,152 &  9,214 &  5,028 &   468 &   428 \\
+Regional (both ext. + lymph nodes)                           &  58,611 &  9,304 &  5,808 &   393 &   350 \\
+Regional lymph nodes only                                    &  55,631 &  9,708 &  5,310 &   419 &   312 \\
+Unknown/unstaged/DCO                                         &  41,164 &  7,093 &  3,065 &   307 & 1,102 \\
+In situ                                                      &      32 &      3 &      4 &     0 &     3 \\
+\midrule
+\textbf{Total}                                               & \textbf{658,421} & \textbf{104,728} & \textbf{50,817} & \textbf{4,279} & \textbf{5,381} \\
+\bottomrule
+\end{tabular}
+\caption{Race distribution by stage --- SEER colon cancer patients.}
+\end{table}
+
+\noindent\textit{White patients make up $\sim$80\% of all cases. Black patients have a proportionally higher share of Distant (metastatic) cases (15.7\%) compared to their overall share (12.7\%), suggesting later-stage diagnosis.}
+
+\vspace{6pt}
+
+% ── 3. Grade by Stage ─────────────────────────────────────────────────────────
+\subsection*{3.3 Grade by Stage}
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{lrrrr}
+\toprule
+\textbf{Stage} & \textbf{Grade I (Well)} & \textbf{Grade II (Mod.)} & \textbf{Grade III (Poor)} & \textbf{Unknown/Blank} \\
+\midrule
+Localized only                                               & 29,040 & 113,673 & 15,510 &  88,359 \\
+Blank(s)                                                     & 14,191 &  84,138 & 23,443 &  26,057 \\
+Distant site(s)/node(s) involved                             &  4,916 &  43,854 & 19,876 &  71,419 \\
+Regional by direct extension only                            &  4,794 &  39,771 &  9,323 &  26,635 \\
+Regional (both ext. + lymph nodes)                           &  2,573 &  32,418 & 14,326 &  23,214 \\
+Regional lymph nodes only                                    &  3,621 &  36,670 & 10,648 &  19,159 \\
+Unknown/unstaged/DCO                                         &  1,574 &   7,899 &  1,862 &  41,104 \\
+\midrule
+\textbf{Total}                                               & \textbf{60,709} & \textbf{358,423} & \textbf{94,988} & \textbf{295,947} \\
+\bottomrule
+\end{tabular}
+\caption{Grade distribution by stage --- SEER colon cancer patients. Unknown/Blank combines missing and unclassified grades.}
+\end{table}
+
+\noindent\textit{Grade II (Moderately differentiated) is the most common across all stages. Grade III (Poorly differentiated) is proportionally highest in Distant cases, consistent with more aggressive tumors presenting at advanced stage.}
+
+\vspace{6pt}
+
+% ── 4. Age by Stage ───────────────────────────────────────────────────────────
+\subsection*{3.4 Age Group by Stage (Top 5 Age Groups)}
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{lrrrrr}
+\toprule
+\textbf{Stage} & \textbf{60--64} & \textbf{65--69} & \textbf{70--74} & \textbf{75--79} & \textbf{80--84} \\
+\midrule
+Localized only                                               & 28,091 & 33,550 & 33,868 & 31,948 & 27,065 \\
+Blank(s)                                                     & 14,031 & 18,003 & 21,559 & 23,480 & 19,927 \\
+Distant site(s)/node(s) involved                             & 18,042 & 18,007 & 16,662 & 15,051 & 13,276 \\
+Regional by direct extension only                            &  8,481 & 10,060 & 10,410 & 10,708 & 10,207 \\
+Regional (both ext. + lymph nodes)                           &  8,372 &  9,376 &  9,040 &  8,719 &  7,942 \\
+Regional lymph nodes only                                    &  8,464 &  9,186 &  9,023 &  8,336 &  7,079 \\
+Unknown/unstaged/DCO                                         &  4,155 &  4,890 &  5,248 &  5,693 &  6,996 \\
+\bottomrule
+\end{tabular}
+\caption{Top 5 age groups by stage --- SEER colon cancer patients.}
+\end{table}
+
+\noindent\textit{Localized cases peak at ages 70--74. Distant (metastatic) cases are more evenly distributed across age groups, suggesting metastatic colon cancer affects patients across a wide age range.}
+
+\vspace{6pt}
+
+% ── 5. Metastatic Trend ───────────────────────────────────────────────────────
+\subsection*{3.5 Metastatic (Distant) Cases by Year}
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{rr|rr|rr}
+\toprule
+\textbf{Year} & \textbf{Count} & \textbf{Year} & \textbf{Count} & \textbf{Year} & \textbf{Count} \\
+\midrule
+2004 & 7,010 & 2010 & 7,228 & 2016 & 7,785 \\
+2005 & 6,944 & 2011 & 7,210 & 2017 & 7,686 \\
+2006 & 6,967 & 2012 & 7,334 & 2018 & 8,096 \\
+2007 & 6,959 & 2013 & 7,415 & 2019 & 8,247 \\
+2008 & 7,113 & 2014 & 7,656 & 2020 & 7,880 \\
+2009 & 7,073 & 2015 & 7,599 & 2021 & 8,598 \\
+     &       &      &       & 2022 & 8,642 \\
+\bottomrule
+\end{tabular}
+\caption{Annual count of metastatic (Distant) colon cancer cases, SEER 2004--2022.}
+\end{table}
+
+\noindent\textit{Metastatic cases have steadily increased from $\sim$7,000/year (2004) to \textbf{8,642} (2022), a 23\% increase over 18 years. A minor dip in 2020 is likely due to COVID-19 disruptions to cancer screening and diagnosis.}
+
+\vspace{6pt}
+
+% ── 6. Primary Site by Stage ──────────────────────────────────────────────────
+\subsection*{3.6 Top Primary Sites by Stage}
+
+\begin{table}[H]
+\centering
+\small
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{lrrrr}
+\toprule
+\textbf{Primary Site} & \textbf{Localized} & \textbf{Distant} & \textbf{Regional (all)} & \textbf{Total} \\
+\midrule
+C18.7 --- Sigmoid colon         & 88,578 & 48,571 &  76,097 & 277,634 \\
+C18.2 --- Ascending colon       & 65,340 & 27,005 &  60,226 & 192,592 \\
+C18.4 --- Transverse colon      & 30,086 & 13,559 &  30,521 &  93,922 \\
+C18.9 --- Colon, NOS            &  4,192 & 19,975 &   3,766 &  66,320 \\
+C18.6 --- Descending colon      & 20,003 &  9,402 &  18,403 &  61,738 \\
+C18.3 --- Hepatic flexure       & 14,642 &  7,587 &  14,588 &  48,505 \\
+C18.1 --- Appendix              & 16,143 &  9,077 &   9,451 &  38,813 \\
+C18.5 --- Splenic flexure       &  8,284 &  5,246 &  10,651 &  31,545 \\
+\bottomrule
+\end{tabular}
+\caption{Top primary colon sites by stage category. Regional combines all three regional sub-stages.}
+\end{table}
+
+\noindent\textit{Sigmoid colon is the most common site overall (277,634 cases). Appendix (C18.1) has a disproportionately high Distant rate relative to its total volume, consistent with appendiceal cancers being harder to detect early.}
+
+\vspace{10pt}
+
+% =============================================================================
+\noindent\rule{\linewidth}{0.4pt}
+\noindent\small \textit{Prepared by Rohit for Dr.\ Cagir. Data sources: SEER*Stat (NCI) and HCUP NIS (AHRQ). All patient records are de-identified.}
+
+\end{document}

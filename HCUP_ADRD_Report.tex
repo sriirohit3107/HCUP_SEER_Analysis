@@ -1,0 +1,172 @@
+\documentclass[11pt,letterpaper]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{tcolorbox}
+\usepackage{fancyhdr}
+\usepackage{enumitem}
+\usepackage{tabularx}
+\usepackage{array}
+
+\definecolor{hcupblue}{RGB}{0,70,127}
+\definecolor{lightgray}{RGB}{245,245,245}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\textcolor{hcupblue}{\textbf{HCUP NIS — ADRD \& Falls}}}
+\rhead{\textcolor{gray}{Binghamton University · April 2026}}
+\cfoot{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\title{
+  \vspace{-1cm}
+  \textbf{\textcolor{hcupblue}{\large HCUP NIS: ADRD \& Falls — Study Design Response}}\\[4pt]
+  \normalsize National Inpatient Sample (NIS) · 2016--2022
+}
+\author{Sriirohit Prakash · Binghamton University · \texttt{sprakash1@binghamton.edu}}
+\date{April 2026}
+
+\begin{document}
+\maketitle
+\thispagestyle{fancy}
+
+% ── Q1: Cohorts ───────────────────────────────────────────────────────────────
+\section*{1. Three Study Cohorts}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.4}
+\begin{tabularx}{\textwidth}{lXr}
+\toprule
+\textbf{Cohort} & \textbf{Definition} & \textbf{N (2016--2022)} \\
+\midrule
+\textbf{Primary Fall}
+  & ADRD in any DX \textbf{AND} principal diagnosis (\texttt{I10\_DX1}) is a
+    fall-related injury (S00--S99) or fall mechanism (W00--W19)
+  & 214,140 \\[4pt]
+\textbf{Prior Fall}
+  & ADRD in any DX \textbf{AND} history-of-falling code \textbf{Z91.81}
+    in any DX field \textbf{AND} not in Primary Fall cohort
+  & 127,242 \\[4pt]
+\textbf{No Fall}
+  & ADRD in any DX; \textbf{NO} fall codes (W00--W19) and \textbf{NO} Z91.81
+    anywhere
+  & 2,009,773 \\
+\midrule
+\multicolumn{2}{l}{\textbf{Total (post-exclusions)}} & \textbf{2,495,798} \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\medskip
+\noindent\textbf{Primary admission reason:} In NIS, \texttt{I10\_DX1} (principal diagnosis)
+is the condition chiefly responsible for the admission — this is the primary admission reason
+variable. There is no separate free-text field.
+
+\medskip
+\noindent\textbf{Prior fall:} Since NIS cannot link admissions across visits (see Q3),
+prior fall history is captured via ICD-10-CM code \textbf{Z91.81}
+(\textit{personal history of falling}), coded by the provider at the current admission.
+
+% ── Q2: ADRD ICD codes ───────────────────────────────────────────────────────
+\section*{2. ADRD ICD-10 Codes}
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+\textbf{ICD-10 Code} & \textbf{Condition} \\
+\midrule
+G30.x  & Alzheimer's disease \\
+G31.0x & Frontotemporal dementia \\
+G31.83 & Dementia with Lewy bodies \\
+F01.x  & Vascular dementia \\
+F02.x  & Dementia in other diseases classified elsewhere \\
+\textbf{F03.x} & \textbf{Unspecified / general dementia} \\
+G23.1  & Progressive supranuclear palsy \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent F03.x (unspecified dementia) already covers general dementia patients.
+Any of the above codes in \emph{any} diagnosis position qualifies the discharge as ADRD.
+
+% ── Q3: Patient identity ─────────────────────────────────────────────────────
+\section*{3. Multiple Admissions for the Same Patient}
+
+\begin{tcolorbox}[colback=lightgray, colframe=hcupblue!60]
+\textbf{Yes — the same patient can appear multiple times.}
+NIS assigns a unique \texttt{KEY\_NIS} per \emph{hospitalization}, not per patient.
+There is no patient-level identifier in the NIS public-use file.
+Our cohort counts represent \textbf{hospitalizations}, not unique individuals.
+This is a fundamental NIS limitation and will be stated in the manuscript.
+\end{tcolorbox}
+
+% ── Q4: Inclusions / Exclusions ──────────────────────────────────────────────
+\section*{4. Inclusions and Exclusions}
+
+\begin{center}
+\begin{tabular}{llr}
+\toprule
+\textbf{Criterion} & \textbf{Rule} & \textbf{Applied} \\
+\midrule
+ADRD     & G30, G31.0, G31.83, F01, F02, F03, G23.1 in any DX & Keep \\
+Age      & $\geq$ 50 years at admission (\texttt{AGE})          & Keep \\
+Cancer   & Any C00--C96 in any DX field                         & Exclude \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+% ── Q5: Table 1 ──────────────────────────────────────────────────────────────
+\section*{5. Table 1 — Demographics and Comorbidities}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{lrrr}
+\toprule
+ & \textbf{Primary Fall} & \textbf{Prior Fall} & \textbf{No Fall} \\
+\textbf{Variable} & N = 214,140 & N = 127,242 & N = 2,009,773 \\
+\midrule
+\multicolumn{4}{l}{\textit{Demographics}} \\
+Age, mean (SD)   & 83.7 (6.9) & 82.2 (7.8) & 80.7 (8.5) \\
+Female, \%       & 70.0\%     & 58.2\%     & 58.2\% \\
+\midrule
+\multicolumn{4}{l}{\textit{Race/Ethnicity}} \\
+White            & 80.5\% & 76.4\% & 69.0\% \\
+Black            & 5.1\%  & 9.5\%  & 14.6\% \\
+Hispanic         & 6.7\%  & 6.3\%  & 8.5\% \\
+Asian/PI         & 2.6\%  & 2.4\%  & 2.7\% \\
+Native American  & 0.3\%  & 0.3\%  & 0.4\% \\
+Other            & 2.2\%  & 2.2\%  & 2.5\% \\
+\midrule
+\multicolumn{4}{l}{\textit{Spatial (Hospital)$^{\dagger}$}} \\
+Region           & \multicolumn{3}{c}{\textit{pending NIS Hospital file merge}} \\
+Urban/Teaching   & \multicolumn{3}{c}{\textit{pending NIS Hospital file merge}} \\
+\midrule
+\multicolumn{4}{l}{\textit{Clinical}} \\
+LOS, mean (SD) days & 5.3 (54.2) & 5.2 (99.4) & 5.3 (90.9) \\
+Primary payer$^{\ddagger}$ & \multicolumn{3}{c}{\textit{column position under verification}} \\
+\midrule
+\multicolumn{4}{l}{\textit{Top 10 Elixhauser Comorbidities}} \\
+Hypertension        & 78.1\% & 80.7\% & 81.1\% \\
+Diabetes            & 24.1\% & 30.5\% & 36.9\% \\
+Congestive Heart Failure & 17.4\% & 24.7\% & 30.1\% \\
+Cardiac Arrhythmia  & 29.3\% & 36.9\% & 33.2\% \\
+COPD                & 14.6\% & 16.6\% & 21.5\% \\
+Depression          & 27.7\% & 29.6\% & 27.0\% \\
+Renal Failure       & 29.5\% & 39.0\% & 45.9\% \\
+Obesity             & 4.0\%  & 6.2\%  & 7.9\% \\
+Osteoporosis        & 14.8\% & 9.1\%  & 6.1\% \\
+Malnutrition        & 9.3\%  & 11.3\% & 13.3\% \\
+\bottomrule
+\multicolumn{4}{l}{\small $^{\dagger}$Hospital region/teaching status requires NIS Hospital file (separate from Core file)} \\
+\multicolumn{4}{l}{\small $^{\ddagger}$PAY1 column positions being verified against SAS load files} \\
+\end{tabular}
+\end{center}
+
+\vspace{0.4cm}
+\noindent\rule{\textwidth}{0.4pt}
+\small
+\noindent \textbf{Data:} HCUP NIS 2016--2022, AHRQ.
+\textbf{Prepared by:} Sriirohit Prakash · \texttt{sprakash1@binghamton.edu}
+
+\end{document}
