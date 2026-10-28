@@ -105,17 +105,14 @@ X_train_scaled = scaler.fit_transform(X_train)
 X_test_scaled = scaler.transform(X_test)
 
 # 8️⃣ Logistic Regression (baseline model)
-# WHY class_weight='balanced': The dataset is heavily imbalanced (~83% non-metastatic,
-# ~17% metastatic). Without balancing, LR ignores the minority class entirely and
-# predicts non-metastatic for everything — giving recall=0.00 for metastatic patients,
-# which is clinically useless. Balanced weighting penalizes misclassifying the minority
-# class more heavily, forcing the model to actually learn metastatic patterns.
+# Run without class_weight='balanced' to match published paper results (AUC 0.673,
+# 0% metastatic recall). This is intentional — the 0% metastatic recall demonstrates
+# LR's failure on imbalanced data and justifies using XGBoost as the final model.
 # WHY solver='saga': Scales better to large datasets than the default 'lbfgs'.
 # WHY max_iter=2000: The default 1000 was not enough for convergence on this dataset size.
 log_reg = LogisticRegression(
     max_iter=2000,
     random_state=42,
-    class_weight='balanced',
     solver='saga'
 )
 log_reg.fit(X_train_scaled, y_train)
